@@ -1,9 +1,9 @@
 # monitoring plugins
 
-- [check_clickhouse.py](check_clickhouse.py): fast CIDR scanner reporting Up/Down for each IP in the subnet (_Python 3_)
+- [check_clickhouse.py](check_clickhouse.py): Basic healtcheck for ClickHouse (https://clickhouse.tech/) (_requires Python 3_)
 
 # Example usage
-### check_clickhouse.py - Basic healtcheck for ClickHouse (https://clickhouse.tech/) (_requires Python 3_)
+### check_clickhouse.py - 
 ```
 usage: check_clickhouse.py
 
