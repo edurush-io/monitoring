@@ -12,7 +12,7 @@ cfg['host'] = 'localhost'
 cfg['port'] = '8123'
 cfg['user'] = 'default'
 cfg['password'] = ''
-cfg['timeout'] = 0.01
+cfg['timeout'] = 5 # seconds
 
 urls = [ # urls to ping for healtcheck
     '/ping',
