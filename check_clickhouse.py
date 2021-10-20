@@ -13,13 +13,14 @@ cfg['port'] = '8123'
 cfg['user'] = 'default'
 cfg['password'] = ''
 cfg['timeout'] = 5 # seconds
-
+cfg['perfdata'] = False
 urls = [ # urls to ping for healtcheck
-    '/ping',
-    '/replicas_status'
+    { 'path' : '/ping', 'expect' : 'Ok.' },
+    { 'path' : '/replicas_status', 'expect' : 'Ok.' }
 ]
 
 tt = {} # for measuring time on calls
+exit_st = 0
 
 # end variables
 
@@ -34,6 +35,7 @@ def parse_args ():
     parser.add_argument ("--user", help="ClickHouse user", default=cfg['user'])
     parser.add_argument ("--password", help="ClickHouse password", default=cfg['password'])
     parser.add_argument ("--timeout", help="Connection timeout", default=cfg['timeout'])
+    parser.add_argument ("--perfdata", help="Include perfdata output", action="store_true", default=False, required=False)
 
     args = parser.parse_args()
     if args.host is not None:
@@ -46,9 +48,11 @@ def parse_args ():
         cfg['password'] = args.password
     if args.timeout is not None:
         cfg['timeout'] = args.timeout
+    if args.perfdata:
+        cfg['perfdata'] = True
 
 def TT (s = ''):
-    if tt.get(s) is None: # if key doesn't exist, means that the first call (start)
+    if tt.get(s) is None: # if key doesn't exist it means this is the first call to the function with that key
         tt[s] = datetime.datetime.now()
     else: # calculate time diff (end)
         tt[s] = (datetime.datetime.now() - tt[s]).total_seconds()
@@ -56,14 +60,15 @@ def TT (s = ''):
 if __name__ == "__main__":
     parse_args()
     socket.setdefaulttimeout(cfg['timeout'])
+    perf_data = '|'
 
-    for path in urls:
-        url = "http://" + cfg['host'] + ":" + cfg['port'] + path
+    for mon in urls:
+        url = "http://" + cfg['host'] + ":" + cfg['port'] + mon['path']
         req = urllib.request.Request(url)
         req.add_header('X-ClickHouse-User', cfg['user'])
         req.add_header('X-ClickHouse-Key', cfg['password'])
 
-        TT(path)
+        TT(mon['path'])
         try:
             r = urllib.request.urlopen(req, timeout=cfg['timeout'])
         except urllib.error.HTTPError as err:
@@ -80,6 +85,15 @@ if __name__ == "__main__":
             exit(2)
 
         data = r.read().decode('utf-8').strip()
-        TT(path)
-        print ("{} {} req/time {} sec".format(path, data, tt[path]), end=" ")
+        r.close()
+        TT(mon['path'])
+        if data != mon['expect']:
+            exit_st = 2
+        print ("{} {} req/time {} sec".format(mon['path'], data, tt[mon['path']]), end=" ")
+        if cfg['perfdata']:
+            perf_data += ' ' + mon['path'] + '=' + str(tt[mon['path']]) +'s;;;;'
+    
+    if cfg['perfdata']:
+        print (perf_data)
     print()
+    exit(exit_st)
